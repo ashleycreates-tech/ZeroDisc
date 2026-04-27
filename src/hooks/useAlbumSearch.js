@@ -23,13 +23,13 @@ export function useAlbumSearch() {
       try {
         const token = await getValidToken()
         const params = new URLSearchParams({ q: query, type: 'album', limit: '10' })
-        const url = `https://api.spotify.com/v1/search?${params}`
-        console.log('[ZeroDisc] fetching:', url)
-        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        const res = await fetch(
+          `https://api.spotify.com/v1/search?${params}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
 
         if (!res.ok) {
           const body = await res.json().catch(() => ({}))
-          console.error('[ZeroDisc] Spotify error body:', body)
           throw new Error(`${res.status}: ${body?.error?.message ?? res.statusText}`)
         }
 
@@ -47,8 +47,8 @@ export function useAlbumSearch() {
 
         setResults(albums)
       } catch (e) {
-        console.error('[ZeroDisc] Search error:', e)
-        setError(e.message ?? 'Search failed. Try again.')
+        if (e.message === 'AUTH_EXPIRED') setError('Session expired. Please reconnect Spotify.')
+        else setError(e.message ?? 'Search failed. Try again.')
       } finally {
         setLoading(false)
       }

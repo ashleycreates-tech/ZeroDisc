@@ -29,7 +29,6 @@ export function SpotifyPlayerProvider({ children, enabled }) {
   }, [enabled])
 
   async function initPlayer() {
-    console.log('[ZeroDisc] Initializing Spotify player')
     const player = new window.Spotify.Player({
       name: 'ZeroDisc',
       getOAuthToken: async (cb) => cb(await getValidToken()),
@@ -37,7 +36,6 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     })
 
     player.addListener('ready', ({ device_id }) => {
-      console.log('[ZeroDisc] Player ready, device:', device_id)
       deviceIdRef.current = device_id
       setReady(true)
     })
@@ -50,13 +48,11 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     player.addListener('authentication_error', ({ message }) => setError(message))
     player.addListener('account_error', () => setError('Spotify Premium is required for playback.'))
 
-    const connected = await player.connect()
-    console.log('[ZeroDisc] Player connected:', connected)
+    await player.connect()
     playerRef.current = player
   }
 
   const play = useCallback(async (albumUri) => {
-    console.log('[ZeroDisc] play(), device:', deviceIdRef.current, 'uri:', albumUri)
     if (!deviceIdRef.current) return
     try {
       const token = await getValidToken()
@@ -70,11 +66,11 @@ export function SpotifyPlayerProvider({ children, enabled }) {
       )
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
-        console.error('[ZeroDisc] Play failed:', res.status, body)
         setError(`Playback error ${res.status}: ${body?.error?.message ?? res.statusText}`)
       }
     } catch (e) {
-      setError('Playback failed. Try again.')
+      if (e.message === 'AUTH_EXPIRED') setError('Session expired. Please reconnect Spotify.')
+      else setError('Playback failed. Try again.')
     }
   }, [])
 

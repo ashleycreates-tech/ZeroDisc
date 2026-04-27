@@ -125,8 +125,13 @@ export function isTokenValid() {
 
 export async function getValidToken() {
   if (isTokenValid()) return getStoredToken().access_token
-  const token = await refreshAccessToken()
-  return token.access_token
+  try {
+    const token = await refreshAccessToken()
+    return token.access_token
+  } catch {
+    logout()
+    throw new Error('AUTH_EXPIRED')
+  }
 }
 
 export function logout() {
