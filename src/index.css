@@ -21,3 +21,8 @@ body {
 ::-webkit-scrollbar {
   width: 0px;
 }
+
+/* Hide Spotify SDK internal iframe */
+iframe[src*="sdk.scdn.co"] {
+  display: none !important;
+}
