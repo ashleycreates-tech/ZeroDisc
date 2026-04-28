@@ -22,7 +22,15 @@ body {
   width: 0px;
 }
 
-/* Hide Spotify SDK internal iframe */
-iframe[src*="sdk.scdn.co"] {
-  display: none !important;
+/* Hide Spotify SDK internal iframe without breaking its messaging */
+iframe[src*="sdk.scdn.co"],
+iframe[src*="spotify"] {
+  position: fixed !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  top: -9999px !important;
+  left: -9999px !important;
 }
