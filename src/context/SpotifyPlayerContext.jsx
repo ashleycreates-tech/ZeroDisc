@@ -15,6 +15,18 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     if (!enabled || initStarted.current) return
     initStarted.current = true
 
+    // Hide any iframes the SDK injects
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeName === 'IFRAME') {
+            node.style.cssText = 'position:fixed!important;top:-9999px!important;left:-9999px!important;width:0!important;height:0!important;opacity:0!important;pointer-events:none!important;border:none!important;'
+          }
+        }
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+
     if (window.Spotify) {
       initPlayer()
       return
@@ -26,6 +38,8 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     script.src = 'https://sdk.scdn.co/spotify-player.js'
     script.async = true
     document.body.appendChild(script)
+
+    return () => observer.disconnect()
   }, [enabled])
 
   async function initPlayer() {
