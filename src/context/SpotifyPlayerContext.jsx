@@ -10,12 +10,14 @@ export function SpotifyPlayerProvider({ children, enabled }) {
   const playerRef = useRef(null)
   const deviceIdRef = useRef(null)
   const initStarted = useRef(false)
+  const currentUriRef = useRef(null)
+  const isPlayingRef = useRef(false)
+  const reconnectTimer = useRef(null)
 
   useEffect(() => {
     if (!enabled || initStarted.current) return
     initStarted.current = true
 
-    // Hide anything the SDK injects directly into body (iframes, widgets, divs)
     const sdkStyle = 'position:fixed!important;top:-9999px!important;left:-9999px!important;width:0!important;height:0!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important;'
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
@@ -40,7 +42,10 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     script.async = true
     document.body.appendChild(script)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      clearTimeout(reconnectTimer.current)
+    }
   }, [enabled])
 
   async function initPlayer() {
@@ -53,12 +58,31 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     player.addListener('ready', ({ device_id }) => {
       deviceIdRef.current = device_id
       setReady(true)
+
+      // If we were playing when the device dropped, resume automatically
+      if (isPlayingRef.current && currentUriRef.current) {
+        reconnectTimer.current = setTimeout(() => {
+          playUri(currentUriRef.current)
+        }, 1500)
+      }
     })
-    player.addListener('not_ready', () => setReady(false))
+
+    player.addListener('not_ready', () => {
+      setReady(false)
+      // Reconnect after a short delay
+      reconnectTimer.current = setTimeout(() => {
+        playerRef.current?.connect()
+      }, 2000)
+    })
+
     player.addListener('player_state_changed', (state) => {
       if (!state) return
-      setPlaying(!state.paused)
+      const nowPlaying = !state.paused
+      setPlaying(nowPlaying)
+      isPlayingRef.current = nowPlaying
+      if (state.context?.uri) currentUriRef.current = state.context.uri
     })
+
     player.addListener('initialization_error', ({ message }) => setError(message))
     player.addListener('authentication_error', ({ message }) => setError(message))
     player.addListener('account_error', () => setError('Spotify Premium is required for playback.'))
@@ -67,7 +91,7 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     playerRef.current = player
   }
 
-  const play = useCallback(async (albumUri, retries = 3) => {
+  async function playUri(albumUri, retries = 3) {
     if (!deviceIdRef.current) return
     try {
       const token = await getValidToken()
@@ -81,7 +105,7 @@ export function SpotifyPlayerProvider({ children, enabled }) {
       )
       if (res.status === 404 && retries > 0) {
         await new Promise(r => setTimeout(r, 1000))
-        return play(albumUri, retries - 1)
+        return playUri(albumUri, retries - 1)
       }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -91,10 +115,22 @@ export function SpotifyPlayerProvider({ children, enabled }) {
       if (e.message === 'AUTH_EXPIRED') setError('Session expired. Please reconnect Spotify.')
       else setError('Playback failed. Try again.')
     }
+  }
+
+  const play = useCallback(async (albumUri) => {
+    currentUriRef.current = albumUri
+    isPlayingRef.current = true
+    await playUri(albumUri)
   }, [])
 
-  const pause = useCallback(() => playerRef.current?.pause(), [])
-  const togglePlay = useCallback(() => playerRef.current?.togglePlay(), [])
+  const pause = useCallback(() => {
+    isPlayingRef.current = false
+    playerRef.current?.pause()
+  }, [])
+
+  const togglePlay = useCallback(() => {
+    playerRef.current?.togglePlay()
+  }, [])
 
   return (
     <SpotifyPlayerContext.Provider value={{ ready, playing, error, play, pause, togglePlay }}>
