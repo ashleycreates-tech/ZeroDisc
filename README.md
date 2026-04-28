@@ -35,7 +35,7 @@ npm install
 npm run dev
 ```
 
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173) — use the explicit IP, not `localhost`, to match Spotify's redirect URI requirement.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser. This address is local to your machine only — use the explicit IP rather than `localhost` to match Spotify's redirect URI requirement.
 
 ## Notes
 
