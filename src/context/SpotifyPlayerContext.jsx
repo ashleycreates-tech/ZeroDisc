@@ -15,17 +15,18 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     if (!enabled || initStarted.current) return
     initStarted.current = true
 
-    // Hide any iframes the SDK injects
+    // Hide anything the SDK injects directly into body (iframes, widgets, divs)
+    const sdkStyle = 'position:fixed!important;top:-9999px!important;left:-9999px!important;width:0!important;height:0!important;opacity:0!important;pointer-events:none!important;overflow:hidden!important;'
     const observer = new MutationObserver((mutations) => {
       for (const mutation of mutations) {
         for (const node of mutation.addedNodes) {
-          if (node.nodeName === 'IFRAME') {
-            node.style.cssText = 'position:fixed!important;top:-9999px!important;left:-9999px!important;width:0!important;height:0!important;opacity:0!important;pointer-events:none!important;border:none!important;'
+          if (node.nodeType === Node.ELEMENT_NODE && node.tagName !== 'SCRIPT' && node.id !== 'root') {
+            node.style.cssText = sdkStyle
           }
         }
       }
     })
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, { childList: true })
 
     if (window.Spotify) {
       initPlayer()
