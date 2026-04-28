@@ -67,7 +67,7 @@ export default function SearchScreen({ onSelect, onLogout }) {
             value={query}
             onChange={handleInput}
             placeholder="Search for an album…"
-            className="w-full bg-stone-900/60 border border-stone-800 rounded-xl pl-11 pr-4 py-3.5 text-stone-200 placeholder-stone-600 text-sm outline-none focus:border-stone-600 transition-colors duration-200"
+            className="w-full bg-stone-900/60 border border-stone-800 rounded-xl pl-11 pr-4 py-3.5 text-stone-200 placeholder-stone-600 text-base outline-none focus:border-stone-600 transition-colors duration-200"
           />
         </div>
         {error && <p className="text-red-400/70 text-xs mt-2 text-center">{error}</p>}

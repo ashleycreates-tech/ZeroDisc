@@ -52,7 +52,7 @@ export function SpotifyPlayerProvider({ children, enabled }) {
     playerRef.current = player
   }
 
-  const play = useCallback(async (albumUri) => {
+  const play = useCallback(async (albumUri, retries = 3) => {
     if (!deviceIdRef.current) return
     try {
       const token = await getValidToken()
@@ -64,6 +64,10 @@ export function SpotifyPlayerProvider({ children, enabled }) {
           body: JSON.stringify({ context_uri: albumUri }),
         }
       )
+      if (res.status === 404 && retries > 0) {
+        await new Promise(r => setTimeout(r, 1000))
+        return play(albumUri, retries - 1)
+      }
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setError(`Playback error ${res.status}: ${body?.error?.message ?? res.statusText}`)
